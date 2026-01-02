@@ -1,0 +1,360 @@
+{% extends "base.html" %}
+
+{% block title %}Dashboard - Deployment Automation Tool{% endblock %}
+
+{% block page_class %}page-dashboard{% endblock %}
+
+{% block content %}
+<div class="container mx-auto px-4 py-8 max-w-6xl">
+
+  <!-- Header -->
+  <div class="text-center mb-8 fade-in-up">
+    <h1 class="text-4xl font-bold mb-2 text-white drop-shadow-lg">
+      🚀 Deployment Dashboard
+    </h1>
+    <p class="text-lg text-white/95 font-medium drop-shadow-md">Deploy, Manage & Run Projects Efficiently</p>
+  </div>
+
+  <!-- Warning Banner -->
+  {% if config_warning %}
+  <div class="mb-6 bg-amber-50 border-l-4 border-amber-400 rounded-lg p-5 shadow-sm">
+    <div class="flex items-start">
+      <div class="text-2xl mr-3">⚠️</div>
+      <div class="flex-1">
+        <p class="text-slate-800 font-semibold mb-2">{{ config_warning }}</p>
+        <div class="text-slate-700 text-sm mt-3">
+          <strong class="block mb-2">Quick Fix:</strong>
+          <ol class="list-decimal list-inside space-y-1 ml-2">
+            <li>Create a <code class="bg-slate-200 px-2 py-1 rounded text-xs">.env</code> file in the project root
+              directory</li>
+            <li>Add: <code class="bg-slate-200 px-2 py-1 rounded text-xs">GITHUB_USERNAME=your_github_username</code>
+            </li>
+            <li>Add: <code class="bg-slate-200 px-2 py-1 rounded text-xs">GITHUB_TOKEN=your_github_token</code>
+              (optional but recommended)</li>
+            <li>Restart the application</li>
+          </ol>
+          <p class="mt-3 text-xs text-slate-600">You can copy <code
+              class="bg-slate-200 px-1 py-0.5 rounded text-xs">.env.example</code> to <code
+              class="bg-slate-200 px-1 py-0.5 rounded text-xs">.env</code> and fill in your values.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+  {% endif %}
+
+  <!-- Main Card -->
+  <div class="glass-strong rounded-2xl shadow-2xl p-8 mb-6 fade-in-up">
+
+    <!-- Radio Buttons -->
+    <div class="flex justify-center gap-4 mb-8">
+      <label class="flex items-center cursor-pointer">
+        <input type="radio" name="source" value="my_github" id="src_my" checked class="sr-only">
+        <div class="px-6 py-3 rounded-xl bg-blue-600 text-white font-semibold btn-hover shadow-lg" id="radio_my">
+          <span class="flex items-center gap-2 relative z-10">
+            <span>🔍</span> Use my GitHub
+          </span>
+        </div>
+      </label>
+      <label class="flex items-center cursor-pointer">
+        <input type="radio" name="source" value="custom" id="src_custom" class="sr-only">
+        <div class="px-6 py-3 rounded-xl bg-slate-500 text-white font-semibold btn-hover shadow-lg" id="radio_custom">
+          <span class="flex items-center gap-2 relative z-10">
+            <span>🔗</span> Custom GitHub URL
+          </span>
+        </div>
+      </label>
+    </div>
+
+    <form id="form" onsubmit="return false;">
+
+      <!-- My GitHub Block -->
+      <div id="my_github_block" class="space-y-6">
+        <div class="glass rounded-xl p-6 fade-in-up">
+          <label class="block text-slate-800 font-semibold mb-3 text-lg">GitHub Username or URL</label>
+          <div class="flex gap-3">
+            <input type="text" id="github_username" placeholder="Enter GitHub username or URL"
+              class="flex-1 px-4 py-3 rounded-lg bg-white border border-slate-300 text-slate-800 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all">
+            <button type="button" onclick="fetchGitHubRepos()"
+              class="px-6 py-3 bg-blue-600 text-white font-semibold rounded-lg btn-hover shadow-lg relative z-10">
+              <span class="relative z-10">🔍 Fetch Repos</span>
+            </button>
+          </div>
+          <p class="text-slate-600 text-sm mt-2">Enter a GitHub username to see their repositories</p>
+
+          <!-- Token Input (Required) -->
+          <div class="mt-5">
+            <label class="block text-slate-800 font-semibold mb-2 text-sm">
+              GitHub Token <span class="text-red-600">*</span> <span
+                class="text-slate-500 text-xs font-normal">(Required)</span>
+            </label>
+            <input type="password" id="github_token" placeholder="ghp_..." required
+              class="w-full px-4 py-3 rounded-lg bg-white border border-slate-300 text-slate-800 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all">
+            <div class="mt-2 flex items-start gap-2">
+              <span class="text-amber-600 text-sm">💡</span>
+              <div class="text-slate-600 text-xs">
+                <p>Get your token from: <a href="https://github.com/settings/tokens" target="_blank"
+                    class="text-blue-600 hover:text-blue-700 underline">GitHub Settings → Developer settings → Personal
+                    access tokens</a></p>
+                <p class="mt-1">Select <code class="bg-slate-200 px-1 py-0.5 rounded">repo</code> scope for full access
+                </p>
+              </div>
+            </div>
+          </div>
+
+          <!-- Loading Indicator -->
+          <div id="repos_loading" class="hidden mt-4">
+            <div class="flex items-center gap-3 text-blue-600">
+              <div class="animate-spin rounded-full h-5 w-5 border-b-2 border-blue-600"></div>
+              <span>⏳ Fetching repositories...</span>
+            </div>
+          </div>
+
+          <!-- Repo Selector -->
+          <div class="mt-6">
+            <label class="block text-slate-800 font-semibold mb-3 text-lg">Select Repository</label>
+            <select name="repo" id="repo"
+              class="w-full px-4 py-3 rounded-lg bg-white border border-slate-300 text-slate-800 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all">
+              <option value="" class="bg-slate-50">-- Fetch repositories to continue --
+              </option>
+            </select>
+            <div class="text-slate-600 text-sm mt-2" id="repo_count"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Custom URL Block -->
+      <div id="custom_block" class="hidden space-y-4">
+        <div class="bg-slate-50 rounded-lg p-6 border border-slate-200">
+          <label class="block text-slate-800 font-semibold mb-3">GitHub URL or owner/repo</label>
+          <input type="text" id="custom_url" placeholder="https://github.com/owner/repo or owner/repo"
+            class="w-full px-4 py-3 rounded-lg bg-white border border-slate-300 text-slate-800 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all">
+          <p class="text-slate-600 text-sm mt-2">Example: <code
+              class="bg-slate-200 px-2 py-1 rounded text-xs">https://github.com/owner/repository-name</code></p>
+        </div>
+      </div>
+
+      <!-- Status Bar -->
+      <div id="statusBar" class="w-full h-1.5 bg-slate-200 rounded-full overflow-hidden mt-6 mb-6">
+        <div id="statusFill" class="h-full bg-blue-600 rounded-full transition-all duration-1000" style="width: 0;">
+        </div>
+      </div>
+
+      <!-- Action Buttons -->
+      <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+        <button type="button" onclick="deployRepo()"
+          class="px-6 py-4 bg-blue-600 text-white font-semibold rounded-xl btn-hover shadow-lg relative z-10">
+          <span class="relative z-10">⬇️ Deploy Repo</span>
+        </button>
+        <button type="button" onclick="installDeps()"
+          class="px-6 py-4 bg-slate-600 text-white font-semibold rounded-xl btn-hover shadow-lg relative z-10">
+          <span class="relative z-10">📦 Install</span>
+        </button>
+        <button type="button" onclick="runProject()"
+          class="px-6 py-4 bg-green-600 text-white font-semibold rounded-xl btn-hover shadow-lg relative z-10">
+          <span class="relative z-10">▶️ Run</span>
+        </button>
+        <button type="button" onclick="stopProject()"
+          class="px-6 py-4 bg-red-600 text-white font-semibold rounded-xl btn-hover shadow-lg relative z-10">
+          <span class="relative z-10">🛑 Stop</span>
+        </button>
+      </div>
+    </form>
+  </div>
+
+  <!-- Output Card -->
+  <div class="glass-strong rounded-2xl shadow-2xl p-6 fade-in-up">
+    <div class="flex items-center gap-2 mb-4">
+      <span class="text-xl">📊</span>
+      <h2 class="text-slate-800 font-bold text-lg">Output</h2>
+    </div>
+    <pre id="output"
+      class="bg-slate-900 rounded-xl p-4 text-green-400 font-mono text-sm overflow-x-auto border border-slate-700 shadow-inner min-h-[150px] max-h-[400px] overflow-y-auto">Output will appear here...</pre>
+  </div>
+
+</div>
+
+<script>
+  const deployedRepos = {{ deployed_repos | default ([]) | tojson }};
+</script>
+
+<script>
+  // Scroll Animation Observer
+  const observer = new IntersectionObserver((entries) => {
+    entries.forEach(entry => {
+      if (entry.isIntersecting) {
+        entry.target.classList.add('visible');
+      }
+    });
+  }, { threshold: 0.1, rootMargin: '0px 0px -50px 0px' });
+
+  document.querySelectorAll('.fade-in-up').forEach(el => observer.observe(el));
+
+  // Toggle UI blocks
+  document.getElementById('src_my').addEventListener('change', toggleSource);
+  document.getElementById('src_custom').addEventListener('change', toggleSource);
+
+  function toggleSource() {
+    const useCustom = document.getElementById('src_custom').checked;
+    document.getElementById('custom_block').classList.toggle('hidden', !useCustom);
+    document.getElementById('my_github_block').classList.toggle('hidden', useCustom);
+
+    // Update radio button styles
+    if (useCustom) {
+      document.getElementById('radio_my').classList.remove('bg-blue-600', 'hover:bg-blue-700');
+      document.getElementById('radio_my').classList.add('bg-slate-400', 'hover:bg-slate-500');
+      document.getElementById('radio_custom').classList.remove('bg-slate-500', 'hover:bg-slate-600');
+      document.getElementById('radio_custom').classList.add('bg-blue-600', 'hover:bg-blue-700');
+    } else {
+      document.getElementById('radio_custom').classList.remove('bg-blue-600', 'hover:bg-blue-700');
+      document.getElementById('radio_custom').classList.add('bg-slate-500', 'hover:bg-slate-600');
+      document.getElementById('radio_my').classList.remove('bg-slate-400', 'hover:bg-slate-500');
+      document.getElementById('radio_my').classList.add('bg-blue-600', 'hover:bg-blue-700');
+    }
+  }
+
+  async function sendRequest(url, payload = {}) {
+    const outputElem = document.getElementById("output");
+    const statusFill = document.getElementById("statusFill");
+    outputElem.innerHTML = "⏳ Processing...";
+    statusFill.style.width = "30%";
+
+    try {
+      const response = await fetch(url, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload)
+      });
+      const data = await response.json();
+      let output = data.output || "";
+      output = output.replace(/(http[s]?:\/\/[^\s<]+)/g, '<a href="$1" target="_blank" class="text-blue-400 hover:text-blue-300 underline">$1</a>');
+      if (output.includes("requirements.txt not found")) {
+        output += "\n📌 Note: No Python dependencies file found.";
+      }
+      if (output.includes("package.json not found")) {
+        output += "\n📌 Note: No Node.js project detected.";
+      }
+      outputElem.innerHTML = output;
+      statusFill.style.width = "100%";
+      setTimeout(() => statusFill.style.width = "0", 1200);
+    } catch (err) {
+      outputElem.innerHTML = "❌ Error: " + err.message;
+      statusFill.style.width = "0";
+    }
+  }
+
+  async function fetchGitHubRepos() {
+    const username = document.getElementById('github_username').value.trim();
+    const token = document.getElementById('github_token').value.trim();
+
+    if (!username) {
+      document.getElementById("output").innerHTML = "<span class='text-red-600'>⚠️ Please enter a GitHub username.</span>";
+      document.getElementById('github_username').focus();
+      return;
+    }
+
+    if (!token) {
+      document.getElementById("output").innerHTML = "<span class='text-red-600'>❌ GitHub Token is required!<br>Please enter your GitHub Personal Access Token to fetch repositories.</span>";
+      document.getElementById('github_token').focus();
+      return;
+    }
+
+    // Basic token format validation
+    if (!token.startsWith('ghp_') && !token.startsWith('github_pat_')) {
+      document.getElementById("output").innerHTML = "<span class='text-amber-600'>⚠️ Token format looks incorrect. GitHub tokens usually start with 'ghp_' or 'github_pat_'</span>";
+      return;
+    }
+
+    const loadingDiv = document.getElementById('repos_loading');
+    const repoSelect = document.getElementById('repo');
+    const repoCount = document.getElementById('repo_count');
+
+    loadingDiv.classList.remove('hidden');
+    repoSelect.innerHTML = '<option value="">Loading...</option>';
+
+    try {
+      const response = await fetch("/fetch_repos", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ username: username, token: token || null })
+      });
+
+      const data = await response.json();
+      loadingDiv.classList.add('hidden');
+
+      if (data.repos && data.repos.length > 0) {
+        repoSelect.innerHTML = '<option value="">-- Select a repository --</option>';
+
+        data.repos.forEach(repo => {
+          const repoName = repo.name;
+          const isDeployed = deployedRepos.includes(repoName);
+          const option = document.createElement('option');
+          option.value = repoName;
+          option.textContent = isDeployed ? `${repoName} ✅ Deployed` : repoName;
+          if (isDeployed) option.disabled = true;
+          option.className = isDeployed ? 'bg-slate-100 text-slate-500' : 'bg-white text-slate-800';
+          repoSelect.appendChild(option);
+        });
+
+        repoCount.innerHTML = `<span class="text-green-600 font-semibold">✅ Found ${data.count} repositories for ${data.username}</span>`;
+        document.getElementById("output").innerHTML = `<span class="text-green-600">✅ Loaded ${data.count} repositories from ${data.username}</span>`;
+      } else {
+        repoSelect.innerHTML = '<option value="">-- No repos found --</option>';
+        repoCount.innerHTML = `<span class="text-red-600">${data.error || "No repositories found"}</span>`;
+        document.getElementById("output").innerHTML = `<span class="text-red-600">❌ ${data.error || "No repositories found"}</span>`;
+      }
+    } catch (err) {
+      loadingDiv.classList.add('hidden');
+      repoSelect.innerHTML = '<option value="">-- Error fetching repos --</option>';
+      document.getElementById("output").innerHTML = `❌ Error: ${err.message}`;
+    }
+  }
+
+  function deployRepo() {
+    const useCustom = document.getElementById('src_custom').checked;
+    if (useCustom) {
+      const url = document.getElementById('custom_url').value.trim();
+      if (!url) return document.getElementById("output").innerHTML = "⚠️ Please enter a GitHub URL or owner/repo.";
+      sendRequest("/deploy_repo", { custom_url: url });
+    } else {
+      const repo = document.getElementById('repo').value;
+      if (!repo) return document.getElementById("output").innerHTML = "⚠️ Please select a repo.";
+      const username = document.getElementById('github_username').value.trim();
+      sendRequest("/deploy_repo", { repo, github_username: username });
+    }
+  }
+
+  function installDeps() {
+    const useCustom = document.getElementById('src_custom').checked;
+    if (useCustom) {
+      const url = document.getElementById('custom_url').value.trim();
+      if (!url) return document.getElementById("output").innerHTML = "⚠️ Please enter a GitHub URL.";
+      let folder = url.replace(/\/$/, '').split('/').pop();
+      folder = folder.endsWith('.git') ? folder.slice(0, -4) : folder;
+      sendRequest("/install_deps", { repo: folder });
+    } else {
+      const repo = document.getElementById('repo').value;
+      if (!repo) return document.getElementById("output").innerHTML = "⚠️ Please select a repo.";
+      sendRequest("/install_deps", { repo });
+    }
+  }
+
+  function runProject() {
+    const useCustom = document.getElementById('src_custom').checked;
+    if (useCustom) {
+      const url = document.getElementById('custom_url').value.trim();
+      if (!url) return document.getElementById("output").innerHTML = "⚠️ Please enter a GitHub URL.";
+      let folder = url.replace(/\/$/, '').split('/').pop();
+      folder = folder.endsWith('.git') ? folder.slice(0, -4) : folder;
+      sendRequest("/run_project", { repo: folder });
+    } else {
+      const repo = document.getElementById('repo').value;
+      if (!repo) return document.getElementById("output").innerHTML = "⚠️ Please select a repo.";
+      sendRequest("/run_project", { repo });
+    }
+  }
+
+  function stopProject() {
+    sendRequest("/stop_project", {});
+  }
+</script>
+{% endblock %}

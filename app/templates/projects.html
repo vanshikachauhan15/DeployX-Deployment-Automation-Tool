@@ -1,0 +1,189 @@
+{% extends "base.html" %}
+
+{% block title %}Projects - Deployment Automation Tool{% endblock %}
+
+{% block page_class %}page-projects{% endblock %}
+
+{% block content %}
+<div class="container mx-auto px-4 py-8 max-w-6xl">
+
+  <div class="flex items-center justify-between mb-8 fade-in-up">
+    <div>
+      <h1 class="text-4xl font-bold mb-2 text-white drop-shadow-lg">Deployed Projects</h1>
+      <p class="text-white/95 font-medium drop-shadow-md">Manage and monitor your deployed projects</p>
+    </div>
+    <a href="/dashboard"
+      class="px-6 py-3 bg-blue-600 text-white font-semibold rounded-xl btn-hover shadow-lg relative z-10">
+      <span class="relative z-10">+ Deploy New Project</span>
+    </a>
+  </div>
+
+  {% if projects %}
+  <div class="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+    {% for project in projects %}
+    <div class="glass rounded-2xl p-6 card-hover fade-in-up project-card" data-project="{{ project.name }}"
+      style="animation-delay: {{ loop.index0 * 0.1 }}s;">
+      <div class="flex items-start justify-between mb-4">
+        <div class="flex items-center gap-3">
+          <div class="w-12 h-12 bg-blue-100 rounded-xl flex items-center justify-center animate-float">
+            <span class="text-2xl">📁</span>
+          </div>
+          <div>
+            <h3 class="font-bold text-slate-800 text-lg">{{ project.name }}</h3>
+            <p class="text-sm text-slate-600">📅 Created: {{ project.created_at|timestamp_to_date }}</p>
+          </div>
+        </div>
+      </div>
+
+      <div class="space-y-2 mb-4">
+        <div class="flex items-center gap-2 text-sm text-slate-600">
+          <span>📅</span>
+          <span>Modified: {{ project.modified|timestamp_to_date }}</span>
+        </div>
+        <div class="flex items-center gap-2 text-sm text-slate-600">
+          <span>📂</span>
+          <span class="truncate">{{ project.path }}</span>
+        </div>
+      </div>
+
+      <div class="flex gap-2">
+        <button onclick="installDeps('{{ project.name }}')"
+          class="flex-1 px-4 py-2 bg-slate-600 text-white rounded-lg btn-hover text-sm font-semibold">
+          📦 Install
+        </button>
+
+        <button onclick="runProject('{{ project.name }}')"
+          class="flex-1 px-4 py-2 bg-green-600 text-white rounded-lg btn-hover text-sm font-semibold">
+          ▶️ Run
+        </button>
+
+        <button onclick="openDeleteModal('{{ project.name }}')"
+          class="px-4 py-2 bg-red-700 text-white rounded-lg btn-hover text-sm font-semibold">
+          🗑️
+        </button>
+      </div>
+    </div>
+    {% endfor %}
+  </div>
+  {% else %}
+  <div class="glass-strong rounded-2xl p-12 text-center shadow-2xl fade-in-up">
+    <h3 class="text-2xl font-bold text-slate-800 mb-2 gradient-text-blue">No Projects Deployed</h3>
+    <p class="text-slate-600 mb-6">Get started by deploying your first project from the dashboard.</p>
+    <a href="/dashboard"
+      class="px-6 py-3 bg-blue-600 text-white font-semibold rounded-xl btn-hover shadow-lg inline-block relative z-10">
+      <span class="relative z-10">Go to Dashboard →</span>
+    </a>
+  </div>
+  {% endif %}
+
+</div>
+
+<script>
+  // Scroll Animation
+  if (!window.projectObserver) {
+    window.projectObserver = new IntersectionObserver((entries) => {
+      entries.forEach(entry => {
+        if (entry.isIntersecting) {
+          entry.target.classList.add('visible');
+        }
+      });
+    }, { threshold: 0.1 });
+  }
+
+  document.querySelectorAll('.fade-in-up').forEach(el =>
+    window.projectObserver.observe(el)
+  );
+
+
+  function installDeps(repo) {
+    fetch('/install_deps', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ repo })
+    })
+      .then(res => res.json())
+      .then(data => showToast(data.output || 'Installing dependencies...', 'success'));
+  }
+
+  function runProject(repo) {
+    fetch('/run_project', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ repo })
+    })
+      .then(res => res.json())
+      .then(data => showToast(data.output || 'Project started', 'success'));
+  }
+
+
+  function stopProject() {
+    fetch('/stop_project', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({})
+    })
+      .then(res => res.json())
+      .then(data => {
+        showToast(data.output || 'Projects stopped', 'success');
+      })
+      .catch(() => {
+        showToast("❌ Failed to stop projects", "error");
+      });
+  }
+
+
+  let projectToDelete = null;
+
+  function openDeleteModal(projectName) {
+    projectToDelete = projectName;
+    document.getElementById("deleteProjectName").innerText = projectName;
+    document.getElementById("deleteModal").classList.remove("hidden");
+    document.getElementById("deleteModal").classList.add("flex");
+  }
+
+  function closeDeleteModal() {
+    projectToDelete = null;
+    document.getElementById("deleteModal").classList.add("hidden");
+  }
+
+  function confirmDeleteProject() {
+    if (!projectToDelete) return;
+
+    const repo = projectToDelete;
+    projectToDelete = null;
+
+    fetch('/delete_project', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ repo })
+    })
+      .then(res => res.json())
+      .then(data => {
+        closeDeleteModal();
+        showToast(data.output, "success");
+
+        const cards = document.querySelectorAll(".project-card");
+        let card = null;
+
+        cards.forEach(c => {
+          if (c.dataset.project === repo) {
+            card = c;
+          }
+        });
+
+        if (card) {
+          card.style.transition = "all 0.3s ease";
+          card.style.opacity = "0";
+          card.style.transform = "scale(0.95)";
+          setTimeout(() => card.remove(), 300);
+        }
+      })
+      .catch(() => {
+        showToast("❌ Failed to delete project", "error");
+      });
+  }
+
+
+
+</script>
+{% endblock %}

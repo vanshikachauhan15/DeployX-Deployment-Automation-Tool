@@ -1,0 +1,109 @@
+{% extends "base.html" %}
+
+{% block title %}Session Check - DeployX{% endblock %}
+{% block page_class %}page-session-check{% endblock %}
+
+{% block content %}
+
+<style>
+    /* Center Wrapper */
+    .session-wrapper {
+        min-height: calc(100vh - 120px);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 20px;
+    }
+
+    /* Glass Card */
+    .session-card {
+        max-width: 520px;
+        width: 100%;
+        background: rgba(255, 255, 255, 0.15);
+        backdrop-filter: blur(22px);
+        -webkit-backdrop-filter: blur(22px);
+        border-radius: 24px;
+        border: 1px solid rgba(255, 255, 255, 0.25);
+        box-shadow: 0 25px 60px rgba(0, 0, 0, 0.35);
+        padding: 48px 40px;
+        text-align: center;
+        animation: fadeUp 0.6s ease;
+    }
+
+    /* Buttons */
+    .btn-primary {
+        padding: 14px 34px;
+        background: linear-gradient(135deg, #2563eb, #1d4ed8);
+        color: #fff;
+        font-weight: 600;
+        border-radius: 14px;
+        box-shadow: 0 10px 28px rgba(37, 99, 235, 0.45);
+        transition: all 0.3s ease;
+        text-decoration: none;
+    }
+
+    .btn-primary:hover {
+        transform: translateY(-3px);
+        box-shadow: 0 18px 40px rgba(37, 99, 235, 0.65);
+    }
+
+    .btn-danger {
+        padding: 14px 34px;
+        background: linear-gradient(135deg, #dc2626, #b91c1c);
+        color: #fff;
+        font-weight: 600;
+        border-radius: 14px;
+        box-shadow: 0 10px 28px rgba(220, 38, 38, 0.45);
+        transition: all 0.3s ease;
+        text-decoration: none;
+    }
+
+    .btn-danger:hover {
+        transform: translateY(-3px);
+        box-shadow: 0 18px 40px rgba(220, 38, 38, 0.65);
+    }
+
+    /* Animation */
+    @keyframes fadeUp {
+        from {
+            opacity: 0;
+            transform: translateY(25px);
+        }
+
+        to {
+            opacity: 1;
+            transform: translateY(0);
+        }
+    }
+</style>
+
+<div class="session-wrapper">
+
+    <div class="session-card">
+
+        <div class="text-5xl mb-6">🚀</div>
+
+        <h2 class="text-3xl font-bold text-white mb-3">
+            Continue as current user?
+        </h2>
+
+        <p class="text-white/80 text-lg mb-8">
+            You are already logged in to <b>DeployX</b>.
+            <br>
+            What would you like to do?
+        </p>
+
+        <div class="flex gap-4 justify-center flex-wrap">
+            <a href="/dashboard" class="btn-primary">
+                Continue
+            </a>
+            <a href="/logout" class="btn-danger">
+                Switch Account
+            </a>
+        </div>
+
+    </div>
+
+</div>
+
+{% endblock %}

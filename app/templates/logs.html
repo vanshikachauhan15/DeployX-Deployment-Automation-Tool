@@ -1,0 +1,84 @@
+{% extends "base.html" %}
+
+{% block title %}Logs - Deployment Automation Tool{% endblock %}
+
+{% block page_class %}page-logs{% endblock %}
+
+{% block content %}
+<div class="container mx-auto px-4 py-8 max-w-6xl">
+
+  <div class="flex items-center justify-between mb-8 fade-in-up">
+    <div>
+      <h1 class="text-4xl font-bold mb-2 text-white drop-shadow-lg">Deployment Logs</h1>
+      <p class="text-white/95 font-medium drop-shadow-md">Monitor all deployment activities and system logs</p>
+    </div>
+    <button onclick="refreshLogs()"
+      class="px-6 py-3 bg-blue-600 text-white font-semibold rounded-xl btn-hover shadow-lg relative z-10">
+      <span class="relative z-10">🔄 Refresh</span>
+    </button>
+  </div>
+
+  <div class="glass-strong rounded-2xl shadow-2xl fade-in-up">
+    <div class="p-4 border-b border-slate-200 flex items-center justify-between">
+      <div class="flex items-center gap-3">
+        <span class="text-xl">📝</span>
+        <span class="font-semibold text-slate-800">Log Output</span>
+      </div>
+      <div class="flex items-center gap-2">
+        <span class="text-sm text-slate-600">Auto-scroll:</span>
+        <input type="checkbox" id="auto-scroll" checked class="w-4 h-4 accent-blue-500">
+      </div>
+    </div>
+    <pre id="log-content"
+      class="bg-slate-900 rounded-b-2xl p-4 text-green-400 font-mono text-sm overflow-x-auto border-t border-slate-700 min-h-[500px] max-h-[600px] overflow-y-auto shadow-inner">
+    {% for log in logs %}
+    [{{ log.timestamp|timestamp_to_date }}] {{ log.message }}
+    {% endfor %}
+    </pre>
+  </div>
+
+</div>
+
+<script>
+  // Scroll Animation
+  const observer = new IntersectionObserver((entries) => {
+    entries.forEach(entry => {
+      if (entry.isIntersecting) {
+        entry.target.classList.add('visible');
+      }
+    });
+  }, { threshold: 0.1 });
+
+  document.querySelectorAll('.fade-in-up').forEach(el => observer.observe(el));
+
+  const logContent = document.getElementById('log-content');
+  const autoScroll = document.getElementById('auto-scroll');
+
+  function refreshLogs() {
+    fetch('/logs')
+      .then(res => res.text())
+      .then(html => {
+        const parser = new DOMParser();
+        const doc = parser.parseFromString(html, 'text/html');
+        const newContent = doc.querySelector('#log-content')?.textContent || '';
+        logContent.textContent = newContent;
+        if (autoScroll.checked) {
+          logContent.scrollTop = logContent.scrollHeight;
+        }
+      });
+  }
+
+  // Auto-refresh every 5 seconds
+  setInterval(refreshLogs, 5000);
+
+  // Auto-scroll functionality
+  autoScroll.addEventListener('change', function () {
+    if (this.checked) {
+      logContent.scrollTop = logContent.scrollHeight;
+    }
+  });
+
+  // Initial scroll to bottom
+  logContent.scrollTop = logContent.scrollHeight;
+</script>
+{% endblock %}
