@@ -154,3 +154,6 @@ Future Enhancements
 License
 
 This project is open-source and intended for learning and demonstration purposes.
+
+<img width="1703" height="1034" alt="image" src="https://github.com/user-attachments/assets/c707880d-4d38-4bb4-a0d8-aa18c828c212" />
+
