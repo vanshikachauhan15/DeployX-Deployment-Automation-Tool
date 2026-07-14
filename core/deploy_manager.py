@@ -4,6 +4,7 @@ import psutil
 import socket
 import time
 import glob
+import sys
 from dotenv import dotenv_values
 
 class DeploymentManager:
@@ -87,16 +88,24 @@ class DeploymentManager:
 
         def run_cmd(cmd, cwd=None):
             try:
-                subprocess.check_call(cmd, cwd=cwd, shell=True)
-                return True
-            except subprocess.CalledProcessError:
-                return False
+               subprocess.check_call(cmd, cwd=cwd)
+               return True
+            except Exception as e:
+               print("INSTALL ERROR:", e)
+               raise
 
         # ---------- Python ----------
         req_file = os.path.join(repo, "requirements.txt")
         if os.path.exists(req_file):
             output_logs.append("📦 Detected Python project.")
-            if run_cmd(f'pip install -r "{req_file}"'):
+            if run_cmd([
+               sys.executable,
+               "-m",
+               "pip",
+               "install",
+               "-r",
+               req_file
+            ]):
                 output_logs.append("✅ Python dependencies installed.")
             else:
                 output_logs.append("❌ Failed to install Python dependencies.")
@@ -127,7 +136,18 @@ class DeploymentManager:
         notebooks = glob.glob(os.path.join(repo, "*.ipynb"))
         if notebooks:
             output_logs.append("🧠 Detected Machine Learning project.")
-            run_cmd("pip install notebook pandas numpy scikit-learn matplotlib seaborn", cwd=repo)
+            run_cmd([
+                sys.executable,
+                "-m",
+                "pip",
+                "install",
+                "notebook",
+                "pandas",
+                "numpy",
+                "scikit-learn",
+                "matplotlib",
+                "seaborn"
+            ], cwd=repo)
             output_logs.append("✅ Notebook environment ready.")
             return "\n".join(output_logs)
 
