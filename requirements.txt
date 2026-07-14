@@ -5,3 +5,4 @@ requests>=2.31.0
 psutil>=5.9.0
 PyGithub>=1.59.0
 Flask-SQLAlchemy
+gunicorn==23.0.0
